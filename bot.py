@@ -31,14 +31,12 @@ async def on_ready():
         print(client.user.name)
         loggedin = 1
     titel = await on_reddit()
-    if titel == '':
-        print('No stickied post found, or stickied post is too old')
-        await asyncio.sleep(300)
-        await on_ready()
-    else:
-        await client.send_message(client.get_channel('ANNOUNCEMENTS_CHANNEL'), titel)
-        print('Posted sticky thread')
-        await asyncio.sleep(300)
-        await on_ready()
+    if titel:
+        await client.send_message(client.get_channel('ANNOUNCEMENT_CHANNEL'), titel)
+    amatext= 'ama'
+    if amatext in titel:
+        await client.send_message(client.get_channel('ANNOUNCEMENT_CHANNEL'),'@everyone')
+    await asyncio.sleep(300)
+    await on_ready()
 
 client.run('DISCORDBOT_TOKEN')
