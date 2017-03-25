@@ -3,6 +3,8 @@ import asyncio
 import praw
 import datetime
 import time
+import os
+import sys
 
 client = discord.Client()
 reddit = praw.Reddit(user_agent='USER_AGENT',client_id='CLIENT_ID',client_secret='CLIENT_SECRET',password="PASSWORD",username='USERNAME')
@@ -52,21 +54,33 @@ async def on_check():
         print(e)
         await on_check()
     if titel:
-        await client.send_message(client.get_channel('CHANNEL'), titel)
+        await client.send_message(client.get_channel('ANNOUCEMENT_CHANNEL'), titel)
         f = open('posttimes.txt', 'w')
         f.write(str(await time_reddit()))
         f.close()
-    amatext= 'ama'
-    if amatext in titel:
-        await client.send_message(client.get_channel('CHANNEL'),'@everyone')
+    everyonetexts = ['ama', 'exchange']
+    for everyonetext in everyonetexts:
+        if everyonetext in titel:
+            await client.send_message(client.get_channel('ANNOUCEMENT_CHANNEL'),'@everyone')
     await client.change_presence(game=discord.Game(name='MYGAME'))
     sys_time = time.time()
     f = open('posttimes.txt', 'r')
     if float(sys_time) - float(f.read()) >= 43200:
-        await client.purge_from(client.get_channel('CHANNEL'), limit=5, check=is_me)
+        await client.purge_from(client.get_channel('ANNOUCEMENT_CHANNEL'), limit=5, check=is_me)
         print('Cleared bot messages')
     f.close()
     await asyncio.sleep(300)
     await on_check()
+
+@client.event
+async def on_message(message):
+    moderators = ['MODS']
+    author = message.author
+    for moderator in moderators:
+        if str(moderator) == str(author):
+            if message.content.startswith('$restart'):
+                await client.send_message(client.get_channel('MOD_CHANNEL'), 'LEAVE_MESSAGE')
+                os.execv(sys.executable, ['bot.py'] + sys.argv)
+
 
 client.run('BOT_ID')
