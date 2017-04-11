@@ -34,13 +34,14 @@ raw_report_channel = config['DISCORD']['report_channel']
 
 moderators_list = config['LISTS']['moderators']
 blacklist_list = config['LISTS']['blacklist']
+everyonetexts_list = config['LISTS']['everyonetexts']
 
 report_channel = str(raw_report_channel)
 announcement_channel = str(raw_announcement_channel)
 mod_channel = str(raw_mod_channel)
 moderators = moderators_list.split(',')
 blacklist = blacklist_list.split(',')
-
+everyonetexts = everyonetexts_list.split(',')
 
 client = discord.Client()
 reddit = praw.Reddit(user_agent=user_agent,client_id=client_id,client_secret=client_secret,password=password,username=username)
@@ -91,11 +92,10 @@ async def on_check():
         f = open('posttimes.txt', 'w')
         f.write(str(await time_reddit()))
         f.close()
-    everyonetexts = ['ama', 'exchange']
     for everyonetext in everyonetexts:
         if everyonetext in titel:
             await client.send_message(client.get_channel(announcement_channel),'@everyone')
-    await client.change_presence(game=discord.Game(name='Reddit en Reports'))
+    await client.change_presence(game=discord.Game(name=mygame))
     sys_time = time.time()
     f = open('posttimes.txt', 'r')
     if float(sys_time) - float(f.read()) >= 43200:
