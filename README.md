@@ -1,1 +1,1 @@
-# Announce stickied threads in thenetherlands subreddit to the /r/thenetherlands discord server's announcement channel
+# Announce stickied threads from Reddit and offer modmail for Discord
