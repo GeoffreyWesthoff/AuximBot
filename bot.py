@@ -10,6 +10,34 @@ import configparser
 config = configparser.ConfigParser()
 config.read('config.ini')
 
+language = config['GENERAL']['language']
+
+if language == 'english':
+    sticky_title = config['ENGLISH']['sticky_title']
+    leave_message = config['ENGLISH']['leave_message']
+    message_failed = config['ENGLISH']['message_failed']
+    message_received = config['ENGLISH']['message_received']
+    pm_title = config['ENGLISH']['pm_title']
+    mygame = config['ENGLISH']['mygame']
+    print('Language is set to English')
+elif language == 'dutch':
+    sticky_title = config['DUTCH']['sticky_title']
+    leave_message = config['DUTCH']['leave_message']
+    message_failed = config['DUTCH']['message_failed']
+    message_received = config['DUTCH']['message_received']
+    pm_title = config['DUTCH']['pm_title']
+    mygame = config['DUTCH']['mygame']
+    print('Taal is ingesteld op Nederlands')
+
+elif language == 'custom':
+    sticky_title = config['CUSTOM']['sticky_title']
+    leave_message = config['CUSTOM']['leave_message']
+    message_failed = config['CUSTOM']['message_failed']
+    message_received = config['CUSTOM']['message_received']
+    pm_title = config['CUSTOM']['pm_title']
+    mygame = config['CUSTOM']['mygame']
+    print('Bot is now using custom strings')
+
 user_agent = config['REDDIT']['user_agent']
 username = config['REDDIT']['username']
 password = config['REDDIT']['password']
@@ -17,15 +45,10 @@ client_id = config['REDDIT']['client_id']
 client_secret = config['REDDIT']['client_secret']
 subreddit = config['REDDIT']['subreddit']
 check_time = config['REDDIT']['check_time']
+check_time_ama = config['REDDIT']['check_time_ama']
 reddit_time_delta = config['REDDIT']['reddit_time_delta']
 system_time_delta = config['REDDIT']['system_time_delta']
-sticky_title = config['REDDIT']['sticky_title']
 
-leave_message = config['PERSONALISATION']['leave_message']
-message_failed = config['PERSONALISATION']['message_failed']
-message_received = config['PERSONALISATION']['message_received']
-pm_title = config['PERSONALISATION']['pm_title']
-mygame = config['PERSONALISATION']['mygame']
 
 bot_id = config['DISCORD']['bot_id']
 raw_announcement_channel = config['DISCORD']['announcement_channel']
@@ -55,14 +78,18 @@ async def on_reddit():
     stickied = ''
     for submission in reddit.subreddit(subreddit).hot(limit=2):
         ts = time.time() + int(system_time_delta)
+        flair_text = submission.link_flair_text
         real_time = submission.created - int(reddit_time_delta) #fuck zomertijd
         print('System Timestamp: ' + str(ts))
         print('Reddit Timestamp: ' + str(real_time))
         print(datetime.datetime.fromtimestamp(ts))
         print(datetime.datetime.fromtimestamp(real_time))
-        if (submission.stickied == True and ts - real_time <= int(check_time)): #subtract 25200 because of stupid muricas
+        if (submission.stickied == True and ts - real_time <= int(check_time)) and flair_text != 'AMA': #subtract 25200 because of stupid muricas
             print(submission.title)
             stickied = str(sticky_title) + str(submission.title) + ' ' + str(submission.url)
+        elif (submission.stickied == True) and ts - real_time <= int(check_time_ama) and flair_text == 'AMA':
+            print(submission.title)
+            stickied = str(sticky_title) + str(submission.title) + ' ' + str(submission.url) + ' @everyone'
     return stickied
 
 async def time_reddit():
@@ -71,6 +98,12 @@ async def time_reddit():
         if submission.stickied == True:
             reddit_time = submission.created - int(reddit_time_delta)
     return reddit_time
+
+async def flair_text():
+    for submission in reddit.subreddit(subreddit).hot(limit=2):
+        if submission.stickied == True:
+            flair_text = submission.link_flair_text
+    return flair_text
 
 @client.event
 async def on_ready():
@@ -102,8 +135,14 @@ async def on_check():
         await client.purge_from(client.get_channel(announcement_channel), limit=5, check=is_me)
         print('Cleared bot messages')
     f.close()
-    await asyncio.sleep(600)
-    await on_check()
+    if await flair_text() == 'AMA':
+        print('Waiting 1800 seconds')
+        await asyncio.sleep(int(check_time_ama))
+        await on_check()
+    else:
+        print('Waiting 600 seconds')
+        await asyncio.sleep(int(check_time))
+        await on_check()
 
 @client.event
 async def on_message(message):
