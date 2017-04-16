@@ -54,6 +54,7 @@ bot_id = config['DISCORD']['bot_id']
 raw_announcement_channel = config['DISCORD']['announcement_channel']
 raw_mod_channel = config['DISCORD']['mod_channel']
 raw_report_channel = config['DISCORD']['report_channel']
+command_prefix = config['DISCORD']['command_prefix']
 
 moderators_list = config['LISTS']['moderators']
 blacklist_list = config['LISTS']['blacklist']
@@ -149,10 +150,10 @@ async def on_message(message):
     author = message.author
     for moderator in moderators:
         if str(moderator) == str(author):
-            if message.content.startswith('$restart'):
+            if message.content.startswith(command_prefix + 'restart'):
                 await client.send_message(client.get_channel(mod_channel), leave_message)
                 os.execv(sys.executable, ['bot.py'] + sys.argv)
-            if message.content.startswith('$r'):
+            if message.content.startswith(command_prefix + 'r'):
                 half_reply = message.content.rsplit(' ', 1)[0]
                 reply = half_reply.split(' ', 1)[1]
                 print(reply)
