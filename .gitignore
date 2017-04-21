@@ -6,3 +6,9 @@ configtest\.ini
 posttimes\.txt
 
 configtnl\.ini
+
+\.DS_Store
+
+\.idea/
+
+strikes\.ini

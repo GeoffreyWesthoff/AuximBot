@@ -8,25 +8,38 @@ import sys
 import configparser
 
 config = configparser.ConfigParser()
+strikes_config = configparser.ConfigParser()
 config.read('config.ini')
 
 language = config['GENERAL']['language']
 
 if language == 'english':
-    sticky_title = config['ENGLISH']['sticky_title']
-    leave_message = config['ENGLISH']['leave_message']
-    message_failed = config['ENGLISH']['message_failed']
-    message_received = config['ENGLISH']['message_received']
-    pm_title = config['ENGLISH']['pm_title']
-    mygame = config['ENGLISH']['mygame']
+    sticky_title = 'A new sticky thread was posted'
+    leave_message = 'Goodbye. Be right back...'
+    message_failed = 'Message could not be send'
+    message_received = 'Message sent to moderators :postbox:'
+    message_send = 'Message has been send succesfully.'
+    pm_title = 'A PM was send:'
+    mygame = 'Reddit and Modmail'
+    has = 'has'
+    strike_text = 'strikes'
+    strike_added = 'Strike added to'
+    strike_removed= 'Strike taken from'
+    hasnow = 'He/she now has'
     print('Language is set to English')
 elif language == 'dutch':
-    sticky_title = config['DUTCH']['sticky_title']
-    leave_message = config['DUTCH']['leave_message']
-    message_failed = config['DUTCH']['message_failed']
-    message_received = config['DUTCH']['message_received']
-    pm_title = config['DUTCH']['pm_title']
-    mygame = config['DUTCH']['mygame']
+    sticky_title = 'Er is een nieuwe sticky thread:'
+    leave_message = 'Toedeloe heren. Tot zo...'
+    message_failed = 'Bericht kon niet worden verzonden'
+    message_received = 'Bericht bezorgd bij de moderators :postbox:'
+    message_send = 'Bericht is met succes verzonden'
+    pm_title = 'Een PM is verstuurd:'
+    mygame = 'Reddit en Modmail'
+    has = 'heeft'
+    strike_text = 'strikes'
+    strike_added = 'Strike gegeven aan'
+    strike_removed= 'Strike afgenomen van'
+    hasnow = 'Hij/zij heeft nu'
     print('Taal is ingesteld op Nederlands')
 
 elif language == 'custom':
@@ -36,6 +49,11 @@ elif language == 'custom':
     message_received = config['CUSTOM']['message_received']
     pm_title = config['CUSTOM']['pm_title']
     mygame = config['CUSTOM']['mygame']
+    has = config['CUSTOM']['has']
+    strike_text = config['CUSTOM']['strike_text']
+    strike_added = config['CUSTOM']['strike_added']
+    hasnow = config['CUSTOM']['hasnow']
+    strike_removed = config['CUSTOM']['strike_removed']
     print('Bot is now using custom strings')
 
 user_agent = config['REDDIT']['user_agent']
@@ -102,9 +120,8 @@ async def time_reddit():
 
 async def flair_text():
     for submission in reddit.subreddit(subreddit).hot(limit=2):
-        if submission.stickied == True:
-            flair_text = submission.link_flair_text
-    return flair_text
+        flair_text_check = submission.link_flair_text
+    return flair_text_check
 
 @client.event
 async def on_ready():
@@ -159,12 +176,56 @@ async def on_message(message):
                 print(reply)
                 pm_author = message.content.rsplit(' ', 1)[1]
                 print(pm_author)
-                try:
-                    send_author = await client.get_user_info(pm_author)
-                    print(send_author)
-                    await client.send_message(send_author, reply) #allows moderators to send a reply
-                except Exception as e:
-                    await client.send_message(client.get_channel(report_channel), message_failed)
+                #try:
+                send_author = await client.get_user_info(pm_author)
+                print(send_author)
+                await client.send_message(send_author, reply) #allows moderators to send a reply
+                confirmation = await client.send_message(client.get_channel(report_channel),message_send)
+                await asyncio.sleep(3)
+                await client.delete_message(confirmation)
+                #except Exception as e:
+                #    await client.send_message(client.get_channel(report_channel), message_failed)
+            if message.content.startswith(command_prefix + 'checkstrike'):
+                strike_check = message.content.rsplit(' ', 1)[1]
+                strike_check_user = await client.get_user_info(strike_check)
+                string_strike_check_user = str(strike_check_user)
+                strikes_config.read('strikes.ini')
+                if string_strike_check_user not in strikes_config:
+                    strikes_config.add_section(string_strike_check_user)
+                    strikes_config.set(string_strike_check_user,'strikes','0')
+                strikes = strikes_config.get(string_strike_check_user,'strikes')
+                with open('strikes.ini','w') as configfile:
+                    strikes_config.write(configfile)
+                await client.send_message(client.get_channel(report_channel),strike_check_user.mention + ' ' + has + ' ' + str(strikes) + ' ' + strike_text)
+            if message.content.startswith(command_prefix + 'strike'):
+                strike = message.content.rsplit(' ', 1)[1]
+                strike_user = await client.get_user_info(strike)
+                print(strike_user)
+                strikes_config.read('strikes.ini')
+                string_strike_user = str(strike_user)
+                if string_strike_user not in strikes_config:
+                    strikes_config.add_section(string_strike_user)
+                    strikes_config.set(string_strike_user,'strikes', '0')
+                strikes = strikes_config.get(string_strike_user,'strikes')
+                strikes = int(strikes)+1
+                strikes_config.set(string_strike_user,'strikes',str(strikes))
+                with open('strikes.ini','w') as configfile:
+                    strikes_config.write(configfile)
+                await client.send_message(client.get_channel(report_channel), strike_added + ' ' + strike_user.mention + '. ' + hasnow + ' ' + str(strikes) + ' ' + strike_text)
+            if message.content.startswith(command_prefix + 'deletestrike'):
+                    r_strike = message.content.rsplit(' ', 1)[1]
+                    r_strike_user = await client.get_user_info(r_strike)
+                    strikes_config.read('strikes.ini')
+                    string_r_strike_user = str(r_strike_user)
+                    if string_r_strike_user not in strikes_config:
+                        strikes_config.add_section(string_r_strike_user)
+                        strikes_config.set(string_r_strike_user,'strikes', '0')
+                    r_strikes = strikes_config.get(string_r_strike_user,'strikes')
+                    r_strikes = int(r_strikes)-1
+                    strikes_config.set(string_r_strike_user,'strikes',str(r_strikes))
+                    with open('strikes.ini','w') as configfile:
+                        strikes_config.write(configfile)
+                    await client.send_message(client.get_channel(report_channel), strike_removed + ' ' + r_strike_user.mention + '. ' + hasnow + ' ' + str(r_strikes) + ' ' + strike_text)
     if message.channel.is_private and author != client.user:
         for blacklisted in blacklist:
             if str(blacklisted) != str(author):
